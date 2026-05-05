@@ -1,0 +1,102 @@
+{
+	"geode": "5.6.1",
+	"gd": {
+		"win": "2.2081",
+		"android": "2.2081",
+		"mac": "2.2081",
+		"ios": "2.2081"
+	},
+	"id": "mackan.pindicators",
+	"name": "Pass-Indicators",
+	"version": "v1.0.0",
+	"developer": "Mackan",
+	"description": "",
+	"dependencies": {
+		"geode.node-ids": ">=v1.23.3",
+        "cvolton.level-id-api": {
+            "version": ">=2.0.0",
+            "required": true
+        },
+		"geode.custom-keybinds": ">=v2.0.0"
+	},"settings": {
+        "visualizer-toggle": {
+            "type": "keybind",
+            "name": "Toggle Visualizer To Always Show",
+            "description": "Show the visualizer regardless of the player being alive or dead.",
+            "default": ["V"],
+            "category": "gameplay"
+        },"death-effect-toggle": {
+            "type": "bool",
+            "name": "Indicator Grid",
+            "description": "Toggles the indicator grid death effect.",
+            "default": true
+        },"tracking-toggle": {
+            "type": "bool",
+            "name": "Input Tracking",
+            "description": "Toggles whether inputs from runs are tracked on the permanent list. Turn off if using noclip on the level for example.",
+            "default": true
+        },"ClickMarker-toggle": {
+            "type": "bool",
+            "name": "Click markers",
+            "description": "Click markers show exactly where you clicked and realeased. Be default is is shown as a green dot.",
+            "default": true
+        },"ClickMarkerPredict-toggle": {
+            "type": "bool",
+            "name": "Post-Death click marker",
+            "description": "After you die this option shows where your next click or release was positioned based on your velocity before death. Allows you to see how late you pressed or released.",
+            "default": false
+        },"title_customization": {
+            "type": "title",
+            "name": "Customization"
+        },"colorPermPress": {
+            "name": "Press Indicator Color",
+            "type": "rgba",
+            "default": "#ffffff"
+        },"colorPermRelease": {
+            "name": "Release Indicator Color",
+            "type": "rgba",
+            "default": "#aaa3ce"
+        },"slider-size-Perm": {
+            "name": "Indicator Size",
+            "description": "Changes the sizes of the indicators. (Multiplicative)",
+            "type": "float",
+            "default": 1.0,
+            "min": 0.1,
+            "max": 10,
+            "control": {
+                "slider": true
+            }
+        },"colorMarkerPress": {
+            "name": "Press Marker Color",
+            "type": "rgba",
+            "default": "#00ff00"
+        },"colorMarkerRelease": {
+            "name": "Release Marker Color",
+            "type": "rgba",
+            "default": "#03c403"
+        },"slider-size-Mark": {
+            "name": "Indicator Size",
+            "description": "Changes the sizes of the markers. (Multiplicative)",
+            "type": "float",
+            "default": 1.0,
+            "min": 0.1,
+            "max": 10,
+            "control": {
+                "slider": true
+            }
+        },"title_advanced": {
+            "type": "title",
+            "name": "Advanced"
+        },"slider": {
+            "name": "Time Before Input Gets Accepted",
+            "description": "Inputs get marked as successes if you survive for this amount of time after the input. 2 seconds by default. In niche scenarios you can die by clicks that happen more than 2 seconds before the death, this setting can be changed depending on the niche situation. The default value works for the vast majority of levels. (Note that the last Press and last Release before death are always discarded regardless of time.)",
+            "type": "float",
+            "default": 2.0,
+            "min": 0,
+            "max": 20,
+            "control": {
+                "slider": true
+            }
+        }
+	}
+}
