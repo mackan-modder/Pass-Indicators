@@ -16,8 +16,7 @@
         "cvolton.level-id-api": {
             "version": ">=2.0.0",
             "required": true
-        },
-		"geode.custom-keybinds": ">=v2.0.0"
+        }
 	},"settings": {
         "visualizer-toggle": {
             "type": "keybind",
