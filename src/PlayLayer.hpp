@@ -2,6 +2,8 @@
 #pragma once
 #include "Common.hpp"
 #include <Geode/modify/PlayLayer.hpp>
+#include <Geode/loader/Mod.hpp>
+#include <matjson.hpp>
 
 using namespace geode::prelude;
 
@@ -14,10 +16,12 @@ class $modify(JMPlayLayer, PlayLayer) {
         std::string m_fileId;
         CCLabelBMFont* m_hoverLabel = nullptr;
         CCPoint m_hoverWorldPos = CCPoint(-9999, -9999);
+        bool m_shouldRedraw = true;
         bool m_showVisualizer = false;
         float m_runTimer = 0.0f;
         float m_deathTime = 0.0f;
-        float m_gridCellSize = 0.1f;     
+        float m_gridCellSizeX = 0.2f;
+        float m_gridCellSizeY = 0.8f;
         double m_lastX = 0.0;
         double m_lastY = 0.0;             
         double m_currentVelocityX = 0.0; 

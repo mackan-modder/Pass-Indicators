@@ -45,6 +45,8 @@ class $modify(CCTouchDispatcher) {
                     pl->m_fields->m_runTimer,
                     isRelease
                 });
+
+                pl->m_fields->m_shouldRedraw = true;
             }
             
         }

@@ -54,13 +54,23 @@
         },"colorPermRelease": {
             "name": "Release Indicator Color",
             "type": "rgba",
-            "default": "#aaa3ce"
+            "default": "#71d1d6"
+        },"slider-opacity-Perm": {
+            "name": "Indicator Opacity",
+            "description": "The opacity of the indicators.",
+            "type": "float",
+            "default": 1.0,
+            "min": 0,
+            "max": 1,
+            "control": {
+                "slider": true
+            }
         },"slider-size-Perm": {
             "name": "Indicator Size",
             "description": "Changes the sizes of the indicators. (Multiplicative)",
             "type": "float",
             "default": 1.0,
-            "min": 0.1,
+            "min": 0,
             "max": 10,
             "control": {
                 "slider": true
@@ -72,9 +82,19 @@
         },"colorMarkerRelease": {
             "name": "Release Marker Color",
             "type": "rgba",
-            "default": "#03c403"
+            "default": "#00fff4"
+        },"slider-opacity-Mark": {
+            "name": "Marker Opacity",
+            "description": "The opacity of the markers.",
+            "type": "float",
+            "default": 1.0,
+            "min": 0,
+            "max": 1,
+            "control": {
+                "slider": true
+            }
         },"slider-size-Mark": {
-            "name": "Indicator Size",
+            "name": "Marker Size",
             "description": "Changes the sizes of the markers. (Multiplicative)",
             "type": "float",
             "default": 1.0,

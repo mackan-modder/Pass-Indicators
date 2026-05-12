@@ -10,8 +10,7 @@ struct GridPos {
     int y;
     bool isRelease;
     bool operator<(const GridPos& other) const {
-        return std::tie(y, isRelease, x) 
-        < std::tie(other.y, other.isRelease, other.x);
+        return std::tie(y, isRelease, x) < std::tie(other.y, other.isRelease, other.x);
     }
 };
 

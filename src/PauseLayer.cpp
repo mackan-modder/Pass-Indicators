@@ -27,10 +27,12 @@ void JMPauseLayer::onUpdate(float dt) {
     // Convert raw screen mouse pos to level world space
     auto rawMousePos = getMousePos();
     auto worldPos = pl->m_objectLayer->convertToNodeSpace(rawMousePos);
+    
 
     // Only force a redraw if the mouse actually moved
     if (pl->m_fields->m_hoverWorldPos != worldPos 
         && (pl->m_player1->m_isDead || pl->m_fields->m_showVisualizer)) {
+        pl->m_fields->m_shouldRedraw = true;
         pl->m_fields->m_hoverWorldPos = worldPos;
         pl->drawVisuals(); 
     }

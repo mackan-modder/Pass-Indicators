@@ -1,39 +1,61 @@
 #include "PlayLayer.hpp"
 #include <cvolton.level-id-api/include/EditorIDs.hpp>
 #include <Geode/utils/string.hpp>
+#include <Geode/DefaultInclude.hpp>
+
 
 using namespace geode::prelude;
 
 JMPlayLayer::Fields::~Fields() {
     if (m_fileId.empty()) return;
 
-    auto allData = Mod::get()->getSavedValue<std::map<std::string, LevelModData>>("level-data-map");
+    auto levelsDir = Mod::get()->getSaveDir() / "levels";
     
-    allData[m_fileId] = m_levelData;
+    (void)utils::file::createDirectory(levelsDir);
+
+    auto filePath = levelsDir / (m_fileId + ".json");
     
-    Mod::get()->setSavedValue("level-data-map", allData);
+    auto res = utils::file::writeToJson(filePath, m_levelData);
+    if (!res) {
+        log::error("Failed to save level data for ID {}: {}", m_fileId, res.unwrapErr());
+    }
 }
 
-// HOOKS 
-bool JMPlayLayer::init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
+
+
+bool JMPlayLayer::init(
+    GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
     if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
 
-    // Get the ID
     int id = (level->m_levelType == GJLevelType::Saved || level->m_levelID > 0) 
         ? level->m_levelID.value() 
         : EditorIDs::getID(level);
     
-    m_fields->m_fileId = std::to_string(id);
+    m_fields->m_fileId 
+    = std::to_string(id);
 
-    auto allData = Mod::get()->getSavedValue<std::map<std::string, LevelModData>>("level-data-map");
+    auto filePath 
+    = Mod::get()->getSaveDir() / "levels" / (m_fields->m_fileId + ".json");
     
-    if (allData.contains(m_fields->m_fileId)) {
-        m_fields->m_levelData = allData[m_fields->m_fileId];
+    if (std::filesystem::exists(filePath)) {
+        auto content = file::readString(filePath);
+        if (content) {
+            auto parsed = matjson::parse(content.unwrap());
+            if (parsed) {
+                auto result = parsed.unwrap().as<LevelModData>();
+                if (result.isOk()) {
+                    m_fields->m_levelData = result.unwrap();
+                }
+            }
+        }
     }
 
     m_fields->m_drawNode = CCDrawNode::create();
-    // m_fields->m_drawNode->setID("mackan.passIndicators"_spr);
-    if (m_objectLayer) m_objectLayer->addChild(m_fields->m_drawNode, 999);
+    if (m_objectLayer) {
+        m_objectLayer->addChild(m_fields->m_drawNode, 999);
+        m_fields->m_drawNode->setBlendFunc(
+            { GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA });
+    }
 
     return true;
 }
@@ -66,8 +88,12 @@ void JMPlayLayer::postUpdate(float dt) {
 
 
     if (m_fields->m_drawNode) {
-        if ((m_player1->m_isDead) || m_fields->m_showVisualizer) {
-            this->drawVisuals();
+        if (m_player1->m_isDead || m_fields->m_showVisualizer) {
+            // Only redraw if a change was flagged or the player is moving
+            if (m_fields->m_shouldRedraw || !m_player1->m_isDead) {
+                this->drawVisuals();
+                m_fields->m_shouldRedraw = false; 
+            }
         } else {
             m_fields->m_drawNode->clear();
         }
@@ -85,10 +111,10 @@ void JMPlayLayer::resetLevel() {
 
 void JMPlayLayer::addToPermanent(CCPoint pos, bool isRelease) {
     int gx 
-    = static_cast<int>(std::round(pos.x / m_fields->m_gridCellSize));
+    = static_cast<int>(std::round(pos.x / m_fields->m_gridCellSizeX));
 
     int gy 
-    = static_cast<int>(std::round(pos.y / m_fields->m_gridCellSize));
+    = static_cast<int>(std::round(pos.y / m_fields->m_gridCellSizeY));
 
     GridPos g = { gx, gy, isRelease };
     
@@ -96,9 +122,12 @@ void JMPlayLayer::addToPermanent(CCPoint pos, bool isRelease) {
     auto& permInputs 
     = m_fields->m_levelData.permanentInputs;
 
+    auto insertRes = permInputs.insert(g);
+    auto it = insertRes.first;
+
     const int maxGapCells = 150; 
     // 150 is half a block in-game. Maybe I'll change it in the future.
-    auto it = permInputs.lower_bound(g);
+    
 
     /*
         Below is my logic for connecting lines. 
@@ -108,7 +137,7 @@ void JMPlayLayer::addToPermanent(CCPoint pos, bool isRelease) {
     */
     
     // Checking to the left
-    if (it!= permInputs.begin()) {
+    if (it != permInputs.begin()) {
         auto prev = std::prev(it);
         if (prev->y == gy && prev->isRelease == isRelease) {
             int dist = gx - prev->x;
@@ -119,10 +148,12 @@ void JMPlayLayer::addToPermanent(CCPoint pos, bool isRelease) {
             }
         }
     }
+
+    it = permInputs.find(g);
     
     // Checking to the right
-    auto itNext = permInputs.upper_bound(g);
-    if (itNext!= permInputs.end()) {
+    auto itNext = std::next(it);
+    if (itNext != permInputs.end()) {
         if (itNext->y == gy && itNext->isRelease == isRelease) {
             int dist = itNext->x - gx;
             if (dist > 1 && dist <= maxGapCells) {
@@ -132,7 +163,6 @@ void JMPlayLayer::addToPermanent(CCPoint pos, bool isRelease) {
             }
         }
     }
-    permInputs.insert(g);
 }
 
 void JMPlayLayer::drawVisuals() {
@@ -141,35 +171,45 @@ void JMPlayLayer::drawVisuals() {
 
     if (m_fields->m_hoverLabel) m_fields->m_hoverLabel->setVisible(false);
     
-
-    
-    auto cPermPress = ccc4FFromccc4B(
-        Mod::get()->getSettingValue<ccColor4B>("colorPermPress"));
-
-    auto cPermRelease = ccc4FFromccc4B(
-        Mod::get()->getSettingValue<ccColor4B>("colorPermRelease"));
-
-    auto cMarkPress = ccc4FFromccc4B(
-        Mod::get()->getSettingValue<ccColor4B>("colorMarkerPress"));
-
-    auto cMarkRelease = ccc4FFromccc4B(
-        Mod::get()->getSettingValue<ccColor4B>("colorMarkerRelease"));
-
-
+    static auto mod = Mod::get();
 
     // Fetching settings
-    bool showIndicatorGrid 
-    = Mod::get()->getSettingValue<bool>("death-effect-toggle");
 
+    auto cPermPress = ccc4FFromccc4B(
+        mod->getSettingValue<ccColor4B>("colorPermPress"));
+
+    auto cPermRelease = ccc4FFromccc4B(
+        mod->getSettingValue<ccColor4B>("colorPermRelease"));
+
+    auto cMarkPress = ccc4FFromccc4B(
+        mod->getSettingValue<ccColor4B>("colorMarkerPress"));
+
+    auto cMarkRelease = ccc4FFromccc4B(
+        mod->getSettingValue<ccColor4B>("colorMarkerRelease"));
+
+        
+    auto indicatorOpacity 
+    = mod->getSettingValue<float>("slider-opacity-Perm");
+    auto markerOpacity 
+    = mod->getSettingValue<float>("slider-opacity-Mark");
+
+    cPermPress.a = indicatorOpacity;
+    cPermRelease.a = indicatorOpacity;
+    
+    cMarkPress.a = markerOpacity;
+    cMarkRelease.a = markerOpacity;
+
+    bool showIndicatorGrid 
+    = mod->getSettingValue<bool>("death-effect-toggle");
     bool showMarkers 
-    = Mod::get()->getSettingValue<bool>("ClickMarker-toggle");
+    = mod->getSettingValue<bool>("ClickMarker-toggle");
     bool showPredict 
-    = Mod::get()->getSettingValue<bool>("ClickMarkerPredict-toggle");
+    = mod->getSettingValue<bool>("ClickMarkerPredict-toggle");
     
     auto indicatorSize 
-    = Mod::get()->getSettingValue<float>("slider-size-Perm");
+    = mod->getSettingValue<float>("slider-size-Perm");
     auto markerSize 
-    = Mod::get()->getSettingValue<float>("slider-size-Mark");
+    = mod->getSettingValue<float>("slider-size-Mark");
 
     auto& permInputs = m_fields->m_levelData.permanentInputs;
 
@@ -199,35 +239,35 @@ void JMPlayLayer::drawVisuals() {
             }
 
             float x1 
-            = static_cast<float>(start->x) * m_fields->m_gridCellSize;
+            = static_cast<float>(start->x) * m_fields->m_gridCellSizeX;
 
             float x2 
-            = static_cast<float>(current->x + 1) * m_fields->m_gridCellSize;
+            = static_cast<float>(current->x + 1) * m_fields->m_gridCellSizeX;
 
             float y 
-            = static_cast<float>(start->y) * m_fields->m_gridCellSize;
+            = static_cast<float>(start->y) * m_fields->m_gridCellSizeY;
 
             float h 
-            = m_fields->m_gridCellSize / 2.0f*indicatorSize;
+            = m_fields->m_gridCellSizeY / 2.0f;
 
-            if (x2 < pX - 600.0f || x1 > pX + 600.0f) { 
+            if (x2 < pX - 400.0f || x1 > pX + 400.0f) { 
                 it = next; continue; 
             }
 
             if (start->x == current->x) {
                 m_fields->m_drawNode->drawDot(
                 CCPoint(x1, y),
-                m_fields->m_gridCellSize * 12.0f*indicatorSize, 
-                ccc4f(0, 0, 0, 1)); 
+                m_fields->m_gridCellSizeY * 2.25f*indicatorSize, 
+                ccc4f(0, 0, 0, indicatorOpacity)); 
             } else {
-                float p = 0.5f;
+                float p = m_fields->m_gridCellSizeY*1.2f;
                 CCPoint borderVerts[4] = {
                     {x1 - p, y - h - p}, {x1 - p, y + h + p},
                     {x2 + p, y + h + p}, {x2 + p, y - h - p}
                 };
                 m_fields->m_drawNode->drawPolygon(
                 borderVerts, 4,
-                ccc4f(0, 0, 0, 1), 
+                ccc4f(0, 0, 0, indicatorOpacity), 
                 0, ccc4f(0, 0, 0, 0));
             }
             it = next;
@@ -250,17 +290,17 @@ void JMPlayLayer::drawVisuals() {
             }
 
             float x1 
-            = static_cast<float>(start->x) * m_fields->m_gridCellSize;
+            = static_cast<float>(start->x) * m_fields->m_gridCellSizeX;
 
             float x2 
-            = static_cast<float>(current->x + 1) * m_fields->m_gridCellSize;
+            = static_cast<float>(current->x + 1) * m_fields->m_gridCellSizeX;
 
             float y 
-            = static_cast<float>(start->y) * m_fields->m_gridCellSize;
+            = static_cast<float>(start->y) * m_fields->m_gridCellSizeY;
 
-            float h = m_fields->m_gridCellSize / 2.0f*indicatorSize;
+            float h = m_fields->m_gridCellSizeY / 2.0f;
 
-            if (x2 < pX - 600.0f || x1 > pX + 600.0f) {
+            if (x2 < pX - 500.0f || x1 > pX + 500.0f) {
                 it = next; continue; 
             }
 
@@ -268,14 +308,17 @@ void JMPlayLayer::drawVisuals() {
             bool isHovered = false;
             if (m_isPaused 
                 && (m_player1->m_isDead || m_fields->m_showVisualizer)) {
-                float hitBuffer = 20.0f * h; 
+                float hitBuffer = 5.0f; 
                 auto mPos = m_fields->m_hoverWorldPos;
                 
                 if (start->x == current->x) {
-                    if (mPos.x >= x1 - hitBuffer 
-                        && mPos.x <= x1 + hitBuffer &&
-                        mPos.y >= y - hitBuffer 
-                        && mPos.y <= y + hitBuffer) {
+                    float radius 
+                    = m_fields->m_gridCellSizeY * indicatorSize;
+
+                    if (mPos.x >= x1 - radius - hitBuffer 
+                        && mPos.x <= x1 + radius + hitBuffer &&
+                        mPos.y >= y - radius - hitBuffer 
+                        && mPos.y <= y + radius + hitBuffer) {
                         isHovered = true;
                     }
                 } else {
@@ -299,7 +342,7 @@ void JMPlayLayer::drawVisuals() {
             if (start->x == current->x) {
                 // This is for dots
                 m_fields->m_drawNode->drawDot(CCPoint(x1, y)
-                , m_fields->m_gridCellSize * 5.0f*indicatorSize
+                , m_fields->m_gridCellSizeY *indicatorSize
                 , baseColor);
             } else {
                 // This is for lines(I wanted exact edges)
@@ -323,7 +366,7 @@ void JMPlayLayer::drawVisuals() {
 
                     float timingMsImprecision 
                     = (velocity > 0) 
-                    ? (m_fields->m_gridCellSize / velocity) * 1000.0f : 0.0f;
+                    ? (m_fields->m_gridCellSizeX / velocity) * 1000.0f : 0.0f;
 
                     float frames240 = timingMs * 0.24f;
                     float frames240Imprecision 
@@ -369,12 +412,12 @@ void JMPlayLayer::drawVisuals() {
     if (showMarkers){
         for (auto const& input : m_fields->m_currentRunInputs) {
             m_fields->m_drawNode->drawDot(input.pos, 
-                0.90f*markerSize, 
-                ccc4f(0.0f, 0.0f, 0.0f, 0.5f));
+                1.8f*markerSize, 
+                ccc4f(0.0f, 0.0f, 0.0f, markerOpacity));
 
             ccColor4F color = input.isRelease ? cMarkRelease : cMarkPress;
             m_fields->m_drawNode->drawDot(input.pos, 
-                0.45f*markerSize, color);
+                0.9f*markerSize, color);
         }
     }
 
@@ -382,14 +425,14 @@ void JMPlayLayer::drawVisuals() {
     if (showPredict){
         for (auto const& input : m_fields->m_postDeathInputs) {
             m_fields->m_drawNode->drawDot(input.pos, 
-                0.90f*markerSize, ccc4f(0.0f, 0.0f, 0.0f, 0.5f));
+                1.8f*markerSize, ccc4f(0.0f, 0.0f, 0.0f, markerOpacity));
 
             ccColor4F color = input.isRelease 
             ? ccc4f(0.8f, 0.0f, 0.0f, 1.0f) 
             : ccc4f(1.0f, 0.0f, 0.0f, 1.0f); 
 
             m_fields->m_drawNode->drawDot(input.pos, 
-                0.45f*markerSize, color);
+                0.9f*markerSize, color);
         }  
     }
 }

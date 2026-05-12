@@ -29,7 +29,7 @@ void JMPlayerObject::playerDestroyed(bool p0) {
             }
         }
     }
-    
+    pl->m_fields->m_shouldRedraw = true;
     pl->drawVisuals();
 }
 
