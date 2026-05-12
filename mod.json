@@ -10,7 +10,7 @@
 	"name": "Pass-Indicators",
 	"version": "v1.0.2",
 	"developer": "Mackan",
-	"description": "",
+	"description": "Adds Indicators As a Death Effect",
 	"dependencies": {
 		"geode.node-ids": ">=v1.23.3",
         "cvolton.level-id-api": {
