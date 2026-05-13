@@ -257,7 +257,7 @@ void JMPlayLayer::drawVisuals() {
             if (start->x == current->x) {
                 m_fields->m_drawNode->drawDot(
                 CCPoint(x1, y),
-                m_fields->m_gridCellSizeY * 2.25f*indicatorSize, 
+                m_fields->m_gridCellSizeY*1.165f * 2.0f*indicatorSize, 
                 ccc4f(0, 0, 0, indicatorOpacity)); 
             } else {
                 float p = m_fields->m_gridCellSizeY*1.2f;
@@ -342,7 +342,7 @@ void JMPlayLayer::drawVisuals() {
             if (start->x == current->x) {
                 // This is for dots
                 m_fields->m_drawNode->drawDot(CCPoint(x1, y)
-                , m_fields->m_gridCellSizeY *indicatorSize
+                , m_fields->m_gridCellSizeY*1.15f *indicatorSize
                 , baseColor);
             } else {
                 // This is for lines(I wanted exact edges)

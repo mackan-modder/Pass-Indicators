@@ -1,5 +1,6 @@
 # 1.0.3
 - Updated Changelog
+- Matched up the size of indicator lines and dots.
 
 # 1.0.2
 - Improved Saving System
