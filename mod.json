@@ -8,7 +8,7 @@
 	},
 	"id": "mackan.pindicators",
 	"name": "Pass-Indicators",
-	"version": "v1.0.2",
+	"version": "v1.0.3",
 	"developer": "Mackan",
 	"description": "Adds Indicators As a Death Effect",
 	"dependencies": {

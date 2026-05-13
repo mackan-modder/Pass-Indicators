@@ -428,8 +428,8 @@ void JMPlayLayer::drawVisuals() {
                 1.8f*markerSize, ccc4f(0.0f, 0.0f, 0.0f, markerOpacity));
 
             ccColor4F color = input.isRelease 
-            ? ccc4f(0.8f, 0.0f, 0.0f, 1.0f) 
-            : ccc4f(1.0f, 0.0f, 0.0f, 1.0f); 
+            ? ccc4f(0.8f, 0.0f, 0.4f, markerOpacity) 
+            : ccc4f(1.0f, 0.0f, 0.0f, markerOpacity); 
 
             m_fields->m_drawNode->drawDot(input.pos, 
                 0.9f*markerSize, color);
